@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Vocabulary Game – Synonyms</title>
+<style>
+body {
+    font-family: Arial;
+    background-image: url('https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=1350&q=80'); /* biển */
+    background-size: cover;
+    background-position: center;
+    background-attachment: fixed;
+    padding: 30px;
+    color: #fff;
+}
+h1 {
+    text-align: center;
+    color: #fff;
+    text-shadow: 2px 2px 4px #000;
+}
+#startScreen{text-align:center;margin-top:100px;}
+#startScreen button{font-size:22px;padding:15px 35px;border-radius:30px;border:none;background:#2980b9;color:white;cursor:pointer;}
+#musicControl{text-align:center;margin:15px 0;display:none;}
+#musicControl button{padding:8px 20px;font-size:16px;border-radius:20px;border:none;background:#95a5a6;cursor:pointer;}
+#game{max-width:760px;margin:auto;background: rgba(255,255,255,0.9);padding:30px;border-radius:15px;box-shadow:0 0 15px rgba(0,0,0,0.3);display:none;color: #000; position: relative;}
+#sentence{ font-size:22px; }
+button.choice{padding:10px 20px;margin:6px;font-size:16px;border-radius:10px;border:2px solid #3498db;background:#ecf0f1;cursor:pointer;}
+button.choice:hover{ background:#d6eaf8; }
+#feedback{ font-size:22px;margin-top:10px; }
+#reward{text-align:center;margin-top:15px;display:none;}
+#reward img{width:120px;}
+#infoBox{display:none;margin-top:15px;padding:15px;background:#e8f8f5;border-left:6px solid #2ecc71;border-radius:8px;}
+#nextBtn{display:none;margin-top:15px;background:#27ae60;color:white;font-size:18px;padding:10px 30px;border-radius:20px;border:none;}
+#score{text-align:center;font-size:24px;color:#e67e22;margin-top:20px;}
+#final{text-align:center;font-size:30px;color:#27ae60;display:none;}
+#turtle{
+    position:absolute;
+    bottom:10px;
+    right:10px;
+    width:150px;
+    animation: float 4s ease-in-out infinite;
+}
+@keyframes float{
+    0% {transform: translateY(0);}
+    50% {transform: translateY(-20px);}
+    100% {transform: translateY(0);}
+}
+</style>
+</head>
+<body>
+
+<h1>Vocabulary Game – Synonyms</h1>
+
+<img id="turtle" src="https://cdn.pixabay.com/photo/2017/09/12/14/58/turtle-2745631_960_720.png" alt="Turtle">
+
+<div id="startScreen">
+  <p style="font-size:20px;">Click START to begin</p>
+  <button onclick="startGame()">▶ START THE GAME</button>
+</div>
+
+<div id="musicControl">
+  <button onclick="toggleMusic()">🎵 Play / Pause Music</button>
+</div>
+
+<div id="game">
+  <div id="sentence"></div>
+  <div id="choices"></div>
+  <div id="feedback"></div>
+
+  <div id="reward">
+    <img src="https://cdn-icons-png.flaticon.com/512/2583/2583344.png"><br>
+    <img src="https://media.giphy.com/media/26ufdipQqU2lhNA4g/giphy.gif">
+  </div>
+
+  <div id="infoBox"></div>
+
+  <button id="nextBtn" onclick="nextQuestion()">NEXT ➡</button>
+</div>
+
+<div id="score">Score: 0 / 5 🥇</div>
+<div id="final"></div>
+
+<!-- Sounds -->
+<audio id="applause" preload="auto" src="https://cdn.pixabay.com/download/audio/2022/02/21/audio_ba02e5d8c4.mp3?filename=applause-6327.mp3"></audio>
+<audio id="bgMusic" loop>
+  <source src="https://cdn.pixabay.com/audio/2022/10/16/audio_4a8cfb7d63.mp3" type="audio/mpeg">
+</audio>
+
+<script>
+const questions=[
+  {s:"I am very ___ to see you today.", o:["happy","glad","delighted"], a:"glad", d:"Glad means pleased or happy about something.", p:"/ɡlæd/"},
+  {s:"The meeting will ___ at 6 PM.", o:["start","begin","commence"], a:"commence", d:"Commence is a formal word meaning to begin.", p:"/kəˈmens/"},
+  {s:"Please ___ carefully.", o:["hear","listen","watch"], a:"listen", d:"Listen means to pay attention to sounds.", p:"/ˈlɪsən/"},
+  {s:"I can ___ you with your homework.", o:["help","assist","aid"], a:"assist", d:"Assist means to help someone formally.", p:"/əˈsɪst/"},
+  {s:"She ___ her opinion clearly.", o:["said","stated","told"], a:"stated", d:"State means to say something clearly and formally.", p:"/ˈsteɪtɪd/"}
+];
+
+let q=0, score=0, locked=false, musicPlaying=false;
+
+function startGame(){
+  document.getElementById("startScreen").style.display="none";
+  document.getElementById("game").style.display="block";
+  document.getElementById("musicControl").style.display="block";
+  toggleMusic();
+  load();
+}
+
+function toggleMusic(){
+  const m=document.getElementById("bgMusic");
+  if(!musicPlaying){ m.volume=0.3; m.play(); musicPlaying=true; }
+  else{ m.pause(); musicPlaying=false; }
+}
+
+function speak(text){
+  speechSynthesis.cancel();
+  let u=new SpeechSynthesisUtterance(text);
+  u.lang="en-US";
+  speechSynthesis.speak(u);
+}
+
+function load(){
+  locked=false;
+  let cur=questions[q];
+  document.getElementById("sentence").innerText=`Q${q+1}: ${cur.s}`;
+  document.getElementById("feedback").innerText="";
+  document.getElementById("infoBox").style.display="none";
+  document.getElementById("reward").style.display="none";
+  document.getElementById("nextBtn").style.display="none";
+
+  let c=document.getElementById("choices");
+  c.innerHTML="";
+  cur.o.forEach(w=>{
+    let b=document.createElement("button");
+    b.className="choice";
+    b.innerText=w;
+    b.onclick=()=>check(w);
+    c.appendChild(b);
+  });
+
+  speak(cur.s.replace("___","blank"));
+}
+
+function check(word){
+  if(locked) return;
+  let cur=questions[q];
+  const clap=document.getElementById("applause");
+  clap.pause();
+  clap.currentTime = 0;
+
+  if(word===cur.a){
+    locked=true;
+    score++;
+
+    document.getElementById("feedback").innerHTML="🎉 Correct! Excellent!";
+    document.getElementById("feedback").style.color="green";
+
+    document.getElementById("reward").style.display="block";
+
+    let info=document.getElementById("infoBox");
+    info.style.display="block";
+    info.innerHTML=`<strong>Correct word:</strong> ${cur.a}<br>
+      <strong>Pronunciation:</strong> ${cur.p}<br>
+      <strong>Definition:</strong> ${cur.d}`;
+
+    document.getElementById("nextBtn").style.display="inline-block";
+
+    // Play applause
+    clap.play();
+
+    // Speak full sentence + definition
+    speak(cur.s.replace("___",cur.a)+". "+cur.d);
+
+  } else{
+    document.getElementById("feedback").innerHTML="😢 Not correct. Try again.";
+    document.getElementById("feedback").style.color="red";
+  }
+
+  document.getElementById("score").innerText=`Score: ${score} / 5 🥇`;
+}
+
+function nextQuestion(){
+  q++;
+  if(q<questions.length) load();
+  else finish();
+}
+
+function finish(){
+  document.getElementById("game").style.display="none";
+  document.getElementById("final").style.display="block";
+  document.getElementById("final").innerHTML=`🏆 CONGRATULATIONS!<br>You earned a GOLD MEDAL 🥇<br>Final Score: ${score}/5`;
+}
+</script>
+
+</body>
+</html>
